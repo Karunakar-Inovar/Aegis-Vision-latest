@@ -1,0 +1,36 @@
+.yarn
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+# yarn.lock
+
+# Swap the comments on the following lines if you don't wish to use zero-installs
+# Documentation here: https://yarnpkg.com/features/zero-installs
+!.yarn/cache
+#.pnp.*
+.github
+
+.next/
+.swc/
+out/
+build
+
+node_modules
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+
+.yarnrc
+.yarnrc.yml
+
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+
+.turbo
+.expo/
+
+# yarn.lock

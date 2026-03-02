@@ -1,0 +1,54 @@
+{
+  "name": "universal-app-starter",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "storybook": "yarn workspace storybook dev",
+    "storybook:build": "yarn workspace storybook build",
+    "dev:web": "yarn workspace web dev",
+    "staging:web": "yarn workspace web dev:staging",
+    "staging:build": "yarn workspace web build:staging",
+    "staging:start": "yarn workspace web start:staging",
+    "dev:build": "yarn workspace web build",
+    "start:build": "yarn workspace web start",
+    "build:web": "yarn workspace web build",
+    "dev:storybook": "yarn workspace storybook dev",
+    "dev:native": "yarn workspace native android",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/storybook/**",
+      "**/storybook"
+    ]
+  },
+  "packageManager": "yarn@1.22.19",
+  "devDependencies": {
+    "clsx": "^2.1.1",
+    "prettier": "^3.3.2",
+    "tailwind-merge": "^2.5.2",
+    "turbo": "^2.0.4"
+  },
+  "resolutions": {
+    "lucide-react": "0.562.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-web": "^0.21.0",
+    "tailwindcss": "^3.4.1",
+    "@types/react": "~19.1.10",
+    "@types/react-dom": "~19.1.10"
+  },
+  "volta": {
+    "node": "20.19.5"
+  },
+  "dependencies": {
+    "@storybook/react-native-web-vite": "^10.0.4",
+    "vite": "^7.1.12"
+  }
+}

@@ -1,0 +1,993 @@
+# DESIGN SYSTEM ARCHITECTURE (INOVAR-UNIVERSAL-APP)
+
+## Philosophy: Maximum Code Reuse with Clean Separation by Concern
+
+### The Universal Stack
+- **Core UI & Logic** lives in shared packages: `packages/ui` (components), `packages/app` (business logic, models, hooks), `packages/i18n` (centralized localization system)
+- **App UIs** live in: `apps/web` (Next.js + React Native Web), `apps/native` (Expo + React Native)
+- **Styling**: NativeWind on both web and native platforms
+
+---
+
+## 🚨 CRITICAL RULE: ZERO RAW STRINGS POLICY
+
+### **NO RAW STRINGS ANYWHERE IN THE CODEBASE**
+
+All user-facing text, labels, messages, placeholders, and strings MUST come from either:
+1. **`@repo/i18n`** - For all translatable user-facing text
+2. **`@repo/app/constants`** - For non-translatable configuration values (API URLs, keys, etc.)
+
+**This rule applies to:**
+- ✅ Component children/content
+- ✅ Button labels
+- ✅ Placeholder text
+- ✅ Error messages
+- ✅ Validation messages
+- ✅ Navigation labels
+- ✅ Form labels
+- ✅ Toast/alert messages
+- ✅ Accessibility labels
+- ✅ Meta tags and titles
+- ✅ Any text a user will see
+
+**❌ VIOLATIONS THAT WILL BE REJECTED:**
+// ❌ WRONG - Raw string in component
+<Text>Welcome to our app</Text>
+
+// ❌ WRONG - Raw placeholder
+<Input placeholder="Enter your email" />
+
+// ❌ WRONG - Raw button text
+<Button>Submit</Button>
+
+// ❌ WRONG - Raw error message
+throw new Error('Something went wrong');
+
+// ❌ WRONG - Console.log with raw string
+console.log('User clicked button');
+
+// ❌ WRONG - Raw translation key
+<Text>{t('welcome')}</Text>
+
+text
+
+**✅ CORRECT PATTERNS:**
+// ✅ CORRECT - Using i18n constants
+import { useTranslation } from 'react-i18next';
+import { STRINGS } from '@repo/i18n';
+
+<Text>{t(STRINGS.WELCOME)}</Text>
+<Input placeholder={t(STRINGS.FORMS.EMAIL_PLACEHOLDER)} />
+<Button>{t(STRINGS.BUTTONS.SUBMIT)}</Button>
+
+// ✅ CORRECT - Using app constants for non-translatable values
+import { API_ENDPOINTS } from '@repo/app/constants';
+fetch(API_ENDPOINTS.USERS);
+
+text
+
+---
+
+## Folder Structure
+
+inovar-universal-app
+└── apps
+├── native # Expo + React Native entrypoint
+└── web # Next.js + React Native Web entrypoint
+└── packages
+├── ui # Shared UI components (React Native primitives)
+├── app # Shared logic, hooks, models, non-i18n constants
+└── i18n # Centralized localization system
+
+text
+
+---
+
+## Package: Localization System (`packages/i18n`)
+
+### Structure
+packages/i18n/
+├── package.json
+├── src/
+│ ├── index.ts # Main export & i18n initialization
+│ ├── config.ts # i18n configuration
+│ ├── constants/
+│ │ └── strings.ts # ALL translation key constants (STRINGS object)
+│ ├── locales/
+│ │ ├── en/
+│ │ │ ├── common.json
+│ │ │ ├── errors.json
+│ │ │ ├── validation.json
+│ │ │ ├── forms.json
+│ │ │ └── index.ts
+│ │ ├── es/
+│ │ │ ├── common.json
+│ │ │ ├── errors.json
+│ │ │ ├── validation.json
+│ │ │ ├── forms.json
+│ │ │ └── index.ts
+│ │ └── index.ts
+│ ├── hooks/
+│ │ └── useLanguage.ts # Language switching hook
+│ └── types/
+│ └── index.ts # TypeScript types
+
+text
+
+### Package Configuration (`packages/i18n/package.json`)
+{
+"name": "@repo/i18n",
+"version": "1.0.0",
+"main": "./src/index.ts",
+"types": "./src/index.ts",
+"dependencies": {
+"i18next": "^23.0.0",
+"react-i18next": "^14.0.0"
+},
+"peerDependencies": {
+"react": "",
+"react-native": ""
+}
+}
+
+text
+
+### i18n Configuration (`packages/i18n/src/config.ts`)
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import * as locales from './locales';
+
+export const DEFAULT_LANGUAGE = 'en';
+export const SUPPORTED_LANGUAGES = ['en', 'es'] as const;
+export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
+
+export const i18nConfig = {
+compatibilityJSON: 'v3',
+resources: locales,
+lng: DEFAULT_LANGUAGE,
+fallbackLng: DEFAULT_LANGUAGE,
+interpolation: {
+escapeValue: false,
+},
+defaultNS: 'common',
+ns: ['common', 'errors', 'validation', 'forms'],
+};
+
+i18n.use(initReactI18next).init(i18nConfig);
+
+export default i18n;
+
+text
+
+### Translation Resources Example (`packages/i18n/src/locales/en/common.json`)
+{
+"welcome": "Welcome",
+"app": {
+"name": "Inovar Universal App",
+"tagline": "Built with React Native & Next.js"
+},
+"buttons": {
+"submit": "Submit",
+"cancel": "Cancel",
+"save": "Save",
+"delete": "Delete",
+"edit": "Edit",
+"confirm": "Confirm",
+"back": "Back"
+},
+"forms": {
+"email": "Email Address",
+"emailPlaceholder": "Enter your email",
+"password": "Password",
+"passwordPlaceholder": "Enter your password",
+"username": "Username"
+},
+"navigation": {
+"home": "Home",
+"profile": "Profile",
+"settings": "Settings"
+},
+"messages": {
+"loading": "Loading...",
+"success": "Success!",
+"error": "An error occurred"
+}
+}
+
+text
+
+### Translation Key Constants (`packages/i18n/src/constants/strings.ts`)
+/**
+
+🚨 CRITICAL: Translation key constants
+
+ALL user-facing text MUST use constants from this file.
+
+NEVER use raw strings like t('welcome') - always use STRINGS.WELCOME
+
+When adding new translations:
+
+Add the key to the appropriate JSON file in locales/
+
+Add the constant here immediately
+
+Use the constant in your component
+*/
+export const STRINGS = {
+WELCOME: 'welcome',
+APP: {
+NAME: 'app.name',
+TAGLINE: 'app.tagline',
+},
+BUTTONS: {
+SUBMIT: 'buttons.submit',
+CANCEL: 'buttons.cancel',
+SAVE: 'buttons.save',
+DELETE: 'buttons.delete',
+EDIT: 'buttons.edit',
+CONFIRM: 'buttons.confirm',
+BACK: 'buttons.back',
+},
+FORMS: {
+EMAIL: 'forms.email',
+EMAIL_PLACEHOLDER: 'forms.emailPlaceholder',
+PASSWORD: 'forms.password',
+PASSWORD_PLACEHOLDER: 'forms.passwordPlaceholder',
+USERNAME: 'forms.username',
+},
+NAVIGATION: {
+HOME: 'navigation.home',
+PROFILE: 'navigation.profile',
+SETTINGS: 'navigation.settings',
+},
+MESSAGES: {
+LOADING: 'messages.loading',
+SUCCESS: 'messages.success',
+ERROR: 'messages.error',
+},
+} as const;
+
+// Type-safe translation key type
+type DeepStringValues<T> = T extends string
+? T
+: T extends object
+? { [K in keyof T]: DeepStringValues<T[K]> }[keyof T]
+: never;
+
+export type TranslationKey = DeepStringValues<typeof STRINGS>;
+
+text
+
+### Language Hook (`packages/i18n/src/hooks/useLanguage.ts`)
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES, SupportedLanguage } from '../config';
+
+export function useLanguage() {
+const { i18n } = useTranslation();
+
+const changeLanguage = async (lng: SupportedLanguage) => {
+await i18n.changeLanguage(lng);
+};
+
+return {
+currentLanguage: i18n.language as SupportedLanguage,
+changeLanguage,
+supportedLanguages: SUPPORTED_LANGUAGES,
+isRTL: i18n.dir() === 'rtl',
+};
+}
+
+text
+
+### Main Export (`packages/i18n/src/index.ts`)
+export { default as i18n } from './config';
+export { STRINGS } from './constants/strings';
+export { useLanguage } from './hooks/useLanguage';
+export type { TranslationKey } from './constants/strings';
+export type { SupportedLanguage } from './config';
+export { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from './config';
+
+// Initialize i18n on import
+import './config';
+
+text
+
+### Locale Resources Export (`packages/i18n/src/locales/en/index.ts`)
+import common from './common.json';
+import errors from './errors.json';
+import validation from './validation.json';
+import forms from './forms.json';
+
+export default {
+common,
+errors,
+validation,
+forms,
+};
+
+text
+
+---
+
+## Package: Non-i18n Constants (`packages/app/constants`)
+
+### Structure
+packages/app/
+├── constants/
+│ ├── index.ts # Main export
+│ ├── api.ts # API endpoints, keys
+│ ├── config.ts # App configuration
+│ └── regex.ts # Validation patterns
+
+text
+
+### API Constants (`packages/app/constants/api.ts`)
+/**
+
+API and configuration constants
+
+Use these for non-translatable, environment-specific values
+*/
+export const API_ENDPOINTS = {
+BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com',
+USERS: '/users',
+AUTH: '/auth',
+PROFILE: '/profile',
+} as const;
+
+export const API_KEYS = {
+TIMEOUT: 30000,
+RETRY_ATTEMPTS: 3,
+} as const;
+
+text
+
+### Config Constants (`packages/app/constants/config.ts`)
+export const APP_CONFIG = {
+MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+PAGINATION_LIMIT: 20,
+DEBOUNCE_DELAY: 300,
+} as const;
+
+text
+
+---
+
+## Shared Design System Layer (`packages/ui`)
+
+### Job
+- Houses **React Native primitives** that work on both web and native via React Native Web
+- Uses React Native core components (View, Text, Pressable, etc.) NOT HTML elements
+- Unstyled base components that accept `className` for NativeWind styling
+- **MUST NOT contain any raw strings** - all text comes from parent components using `@repo/i18n`
+
+### Rules
+✅ **DO:**
+- Use React Native primitives only (`View`, `Text`, `Pressable`, `ScrollView`, `Image`, etc.)
+- Accept `className` prop for NativeWind styling
+- Accept `style` prop for additional inline styles
+- Use `onPress` instead of `onClick` (React Native convention works on both platforms)
+- Export TypeScript prop types for all components
+- Follow accessibility best practices (`accessibilityLabel`, `accessibilityRole`, `accessibilityHint`)
+- Write unit tests for all components
+- Keep components unstyled (no inline styles or StyleSheet in primitives)
+- Accept text/labels as props from parent components (let parents handle i18n)
+
+❌ **DON'T:**
+- Use HTML elements (`<button>`, `<div>`, `<span>`, `<input>`, etc.) - these break on native
+- Use web-only props (`onClick`, `href` without platform checks)
+- Use DOM APIs directly
+- Include business logic in UI components
+- Use platform-specific imports unless using `.web.tsx` / `.native.tsx` file extensions
+- Apply fixed styling in the primitive itself
+- **Use ANY raw strings in components - not even for development/debugging**
+- **Import i18n directly in UI components** - UI is presentation only
+
+### Component Template
+
+// packages/ui/Button.tsx
+import React from 'react';
+import { Pressable, Text, PressableProps } from 'react-native';
+
+interface ButtonProps extends Omit<PressableProps, 'children'> {
+children: React.ReactNode;
+onPress?: () => void;
+disabled?: boolean;
+className?: string;
+textClassName?: string;
+accessibilityLabel?: string; // Parent passes translated label
+}
+
+export const Button = ({
+children,
+onPress,
+disabled = false,
+className = '',
+textClassName = '',
+style,
+accessibilityLabel,
+...rest
+}: ButtonProps) => (
+<Pressable
+onPress={onPress}
+disabled={disabled}
+className={className}
+style={style}
+accessibilityRole="button"
+accessibilityLabel={accessibilityLabel}
+accessibilityState={{ disabled }}
+{...rest}
+
+text
+<Text className={textClassName}>{children}</Text>
+</Pressable> ); ```
+Initialize i18n in Apps
+apps/web/app/layout.tsx
+text
+import '@repo/i18n'; // Initialize i18n
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>{children}</body>
+    </html>
+  );
+}
+apps/native/app/_layout.tsx
+text
+import '@repo/i18n'; // Initialize i18n
+import * as Localization from 'expo-localization';
+import { useEffect } from 'react';
+import { i18n } from '@repo/i18n';
+
+export default function RootLayout() {
+  useEffect(() => {
+    // Set device locale on native
+    const deviceLanguage = Localization.getLocales()?.languageCode;
+    if (deviceLanguage) {
+      i18n.changeLanguage(deviceLanguage);
+    }
+  }, []);
+  
+  return <Slot />;
+}
+Usage Examples: Correct vs Incorrect
+❌ VIOLATIONS - Will be REJECTED in code review:
+text
+// ❌ Raw string in component
+function WelcomeScreen() {
+  return <Text>Welcome to our app!</Text>;
+}
+
+// ❌ Raw placeholder
+function LoginForm() {
+  return <Input placeholder="Enter your email" />;
+}
+
+// ❌ Raw button text
+function Actions() {
+  return <Button>Submit</Button>;
+}
+
+// ❌ Raw error message
+function submitForm() {
+  throw new Error('Validation failed');
+}
+
+// ❌ Raw translation key (typo-prone, no autocomplete)
+function Header() {
+  const { t } = useTranslation();
+  return <Text>{t('welcome')}</Text>;
+}
+
+// ❌ Raw console.log
+function handleClick() {
+  console.log('Button clicked'); // Even debugging strings should use constants
+}
+✅ CORRECT - Follows NO RAW STRINGS policy:
+text
+// ✅ CORRECT - Using i18n with constants
+import { useTranslation } from 'react-i18next';
+import { STRINGS } from '@repo/i18n';
+import { Button, Input } from '@repo/ui';
+import { View, Text } from 'react-native';
+
+function LoginScreen() {
+  const { t } = useTranslation();
+  
+  return (
+    <View>
+      <Text>{t(STRINGS.WELCOME)}</Text>
+      
+      <Input 
+        placeholder={t(STRINGS.FORMS.EMAIL_PLACEHOLDER)}
+        className="border border-gray-300 rounded px-3 py-2 mb-4"
+      />
+      
+      <Button
+        onPress={handleSubmit}
+        className="bg-blue-500 rounded px-4 py-2"
+        textClassName="text-white font-semibold"
+        accessibilityLabel={t(STRINGS.BUTTONS.SUBMIT)}
+      >
+        {t(STRINGS.BUTTONS.SUBMIT)}
+      </Button>
+    </View>
+  );
+}
+
+// ✅ CORRECT - Using app constants for non-translatable values
+import { API_ENDPOINTS } from '@repo/app/constants';
+
+async function fetchUsers() {
+  const response = await fetch(API_ENDPOINTS.USERS);
+  return response.json();
+}
+Platform Adapters: Applications Layer
+apps/web (Next.js + React Native Web)
+Imports primitives from @repo/ui
+
+Imports translations via @repo/i18n
+
+Imports non-i18n constants via @repo/app/constants
+
+React Native Web automatically maps RN components to web DOM
+
+Applies NativeWind using className (same syntax as native)
+
+Uses standard React Native props (onPress, style) that work on web via React Native Web
+
+Handles web-specific concerns (routing, SEO, meta tags) at the app level
+
+All user-facing text uses useTranslation() with STRINGS constants
+
+apps/native (Expo + React Native)
+Imports primitives from @repo/ui
+
+Imports translations via @repo/i18n
+
+Imports non-i18n constants via @repo/app/constants
+
+Applies NativeWind using className
+
+Uses standard React Native props (onPress, style, etc.)
+
+Handles native-specific concerns (permissions, native modules) at the app level
+
+Uses expo-localization for device language detection
+
+All user-facing text uses useTranslation() with STRINGS constants
+
+Shared Logic Package (packages/app)
+Contains
+API services and client utilities
+
+Business logic and data models
+
+Custom hooks for shared state and behavior
+
+Utility functions
+
+TypeScript types and interfaces
+
+Non-i18n constants (API URLs, config values, regex patterns)
+
+Rules
+Platform-agnostic code only
+
+No UI components
+
+No platform-specific imports
+
+Pure business logic and data operations
+
+NO user-facing strings (use @repo/i18n instead)
+
+Only non-translatable constants (API endpoints, timeouts, limits, etc.)
+
+Style & Theming
+Both apps use NativeWind - single styling system across platforms
+
+React Native Web handles web rendering automatically
+
+Design tokens (colors, spacing, typography) defined in shared NativeWind/Tailwind config
+
+Tokens also exported from packages/ui/tokens for programmatic access
+
+Theme switching supported via NativeWind dark mode utilities
+
+Theming Structure
+text
+// packages/ui/tokens/colors.ts
+export const colors = {
+  primary: {
+    50: '#eff6ff',
+    500: '#3b82f6',
+    900: '#1e3a8a',
+  },
+  // ... more tokens
+};
+Tech Stack Reference
+Native: Expo, React Native, NativeWind, expo-localization
+
+Web: Next.js, React Native Web, NativeWind
+
+Localization: i18next, react-i18next
+
+Monorepo: Turborepo
+
+Type Checking: TypeScript
+
+Code Formatting: Prettier
+
+Development Workflow
+Add translation to packages/i18n/src/locales/[lang]/[namespace].json
+
+Add constant to packages/i18n/src/constants/strings.ts
+
+Build primitive in packages/ui using React Native components (View, Text, Pressable)
+
+Style with NativeWind className - works identically on both platforms
+
+Add business logic to packages/app if needed
+
+Import and use in apps with useTranslation() and STRINGS constants
+
+Use platform-specific files (.web.tsx / .native.tsx) only when absolutely necessary
+
+Adding New Translations - Step by Step
+Add to JSON:
+
+text
+// packages/i18n/src/locales/en/forms.json
+{
+  "firstName": "First Name",
+  "firstNamePlaceholder": "Enter your first name"
+}
+Add constant:
+
+text
+// packages/i18n/src/constants/strings.ts
+export const STRINGS = {
+  FORMS: {
+    FIRST_NAME: 'forms.firstName',
+    FIRST_NAME_PLACEHOLDER: 'forms.firstNamePlaceholder',
+  },
+} as const;
+Use in component:
+
+text
+import { useTranslation } from 'react-i18next';
+import { STRINGS } from '@repo/i18n';
+
+function NameField() {
+  const { t } = useTranslation();
+  return (
+    <Input
+      placeholder={t(STRINGS.FORMS.FIRST_NAME_PLACEHOLDER)}
+    />
+  );
+}
+Code Reuse Targets
+Layer	Code Reuse
+UI Primitives	100%
+Translations	100%
+Business Logic	100%
+Theme/Tokens	100%
+Hooks/Models	100%
+Styling Layer	100% (NativeWind)
+Navigation	Platform-specific
+Platform APIs	Platform-specific
+Why This Architecture?
+Single source of truth: UI exists in one place using React Native primitives
+
+Centralized localization: All translations in packages/i18n with type-safe constants
+
+Zero raw strings: Enforced policy prevents scattered, untranslatable text
+
+True universal components: Same components render on web (via React Native Web) and native
+
+Unified styling: NativeWind className works identically on both platforms
+
+Maximum reuse: 100% code sharing for UI, logic, translations, and styling
+
+Clean separation: UI primitives use React Native APIs that work everywhere via React Native Web
+
+Future-proof: Easy to add new platforms or languages without rewriting
+
+---
+
+## 🔄 AUTOMATIC UI SYNCHRONIZATION
+
+### Single Source of Truth = Automatic Updates Everywhere
+
+**Any change to `packages/ui` automatically updates ALL consuming apps:**
+
+| Package Changed | Auto-Updates |
+|-----------------|--------------|
+| `packages/ui` | ✅ Web App, ✅ Native App, ✅ Storybook |
+| `packages/i18n` | ✅ Web App, ✅ Native App, ✅ Storybook |
+| `packages/app` | ✅ Web App, ✅ Native App |
+
+### How It Works
+
+1. **Shared packages are symlinked** via Turborepo/Yarn workspaces
+2. **Hot reload propagates changes** - edit once, see everywhere instantly
+3. **No manual syncing required** - monorepo handles dependency resolution
+
+### Example: Updating Button Hover Effects
+
+When you modify `packages/ui/src/atoms/button-variants.ts`:
+
+```typescript
+// packages/ui/src/atoms/button-variants.ts
+variant: {
+  default: "bg-primary text-primary-foreground hover:brightness-90 dark:hover:brightness-110",
+  // ... other variants
+}
+```
+
+**This AUTOMATICALLY applies to:**
+- ✅ `apps/web` - Next.js web application
+- ✅ `apps/native` - Expo mobile application  
+- ✅ `apps/storybook` - Component documentation
+
+### Development Workflow for UI Changes
+
+1. **Make the change once** in `packages/ui`
+2. **Verify in Storybook** (localhost:6006) - fastest feedback loop
+3. **Check web app** (localhost:3000) - verify in context
+4. **Test native app** (Expo) - ensure mobile compatibility
+5. **Commit and push** - single commit updates everything
+
+### Key Files That Sync Everywhere
+
+| File | Purpose | Affects |
+|------|---------|---------|
+| `packages/ui/src/atoms/button-variants.ts` | Button styling variants | All buttons everywhere |
+| `packages/ui/src/atoms/*.tsx` | Atomic components | All apps |
+| `packages/ui/src/molecules/*.tsx` | Molecule components | All apps |
+| `packages/ui/styles/variables.css` | CSS variables/tokens | Web & Storybook |
+| `packages/ui/theme/colors.js` | Color definitions | Native & all apps |
+| `packages/i18n/src/locales/**/*.json` | Translations | All apps |
+
+### Testing Changes Across Apps
+
+```bash
+# Start all apps for testing
+yarn run dev
+
+# Or start individually:
+yarn workspace web dev          # Web app on localhost:3000
+yarn workspace storybook dev    # Storybook on localhost:6006
+yarn workspace native start     # Native app via Expo
+```
+
+### ⚠️ Important Notes
+
+- **Never duplicate UI code** in individual apps - always use shared packages
+- **Storybook is your testing ground** - verify component changes there first
+- **CSS variables must be defined in `packages/ui/styles/variables.css`** for web/Storybook consistency
+- **Color tokens in `packages/ui/theme/colors.js`** are the source of truth for native
+- **Both light and dark mode** should be tested when making style changes
+
+Key Architecture Rules
+🚨 ZERO RAW STRINGS - ALL user-facing text from @repo/i18n, all config from @repo/app/constants
+
+Always use React Native primitives (View, Text, Pressable, Image, etc.) in packages/ui - NEVER HTML elements
+
+Use onPress not onClick - React Native convention that works on both platforms
+
+Use NativeWind on BOTH apps - not separate Tailwind configs
+
+React Native Web handles DOM rendering - you write React Native, it outputs web
+
+Platform-specific code uses file extensions (.web.tsx / .native.tsx) when needed
+
+Keep packages/ui pure - no business logic, no API calls, no platform dependencies, no i18n imports
+
+All styling via className - makes components themeable and reusable
+
+Export TypeScript types - ensures type safety across the monorepo
+
+Use STRINGS constants - never raw translation keys like t('welcome')
+
+Separate concerns - @repo/i18n for user text, @repo/app/constants for config
+
+Apps handle i18n - UI components receive translated text as props
+
+Common Patterns
+Localized Form Component
+text
+// apps/web/components/LoginForm.tsx or apps/native/components/LoginForm.tsx
+import { useTranslation } from 'react-i18next';
+import { STRINGS } from '@repo/i18n';
+import { Input, Button } from '@repo/ui';
+import { View, Text } from 'react-native';
+
+export function LoginForm() {
+  const { t } = useTranslation();
+  
+  return (
+    <View className="p-4">
+      <Text className="text-2xl font-bold mb-4">
+        {t(STRINGS.WELCOME)}
+      </Text>
+      
+      <Input
+        placeholder={t(STRINGS.FORMS.EMAIL_PLACEHOLDER)}
+        className="border border-gray-300 rounded px-3 py-2 mb-4"
+        accessibilityLabel={t(STRINGS.FORMS.EMAIL)}
+      />
+      
+      <Input
+        placeholder={t(STRINGS.FORMS.PASSWORD_PLACEHOLDER)}
+        secureTextEntry
+        className="border border-gray-300 rounded px-3 py-2 mb-4"
+        accessibilityLabel={t(STRINGS.FORMS.PASSWORD)}
+      />
+      
+      <Button
+        onPress={handleSubmit}
+        className="bg-blue-500 rounded px-4 py-2"
+        textClassName="text-white font-semibold"
+        accessibilityLabel={t(STRINGS.BUTTONS.SUBMIT)}
+      >
+        {t(STRINGS.BUTTONS.SUBMIT)}
+      </Button>
+    </View>
+  );
+}
+Language Switcher
+text
+import { useLanguage } from '@repo/i18n';
+import { Button } from '@repo/ui';
+import { View } from 'react-native';
+
+function LanguageSwitcher() {
+  const { currentLanguage, changeLanguage, supportedLanguages } = useLanguage();
+  
+  return (
+    <View className="flex-row gap-2">
+      {supportedLanguages.map((lang) => (
+        <Button
+          key={lang}
+          onPress={() => changeLanguage(lang)}
+          className={currentLanguage === lang ? 'bg-blue-500' : 'bg-gray-300'}
+          textClassName={currentLanguage === lang ? 'text-white' : 'text-gray-700'}
+        >
+          {lang.toUpperCase()}
+        </Button>
+      ))}
+    </View>
+  );
+}
+Setup & Commands
+Initial Setup
+text
+yarn install
+Development
+text
+yarn run dev    # Starts both web and native in dev mode
+Build
+text
+yarn run build  # Builds all apps for production
+Type Checking
+text
+yarn run typecheck  # Runs TypeScript checks across monorepo
+Linting
+text
+yarn run lint   # Runs ESLint across all packages
+Project Structure Quick Reference
+text
+├── apps/
+│   ├── native/              # Expo app (iOS/Android)
+│   │   ├── app/             # Expo Router screens
+│   │   └── package.json
+│   └── web/                 # Next.js app
+│       ├── app/             # Next.js App Router
+│       └── package.json
+├── packages/
+│   ├── app/                 # Shared business logic
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── models/
+│   │   ├── utils/
+│   │   └── constants/       # Non-i18n constants (API, config)
+│   ├── i18n/                # Localization package
+│   │   ├── src/
+│   │   │   ├── index.ts
+│   │   │   ├── config.ts
+│   │   │   ├── constants/
+│   │   │   │   └── strings.ts
+│   │   │   ├── locales/
+│   │   │   │   ├── en/
+│   │   │   │   └── es/
+│   │   │   └── hooks/
+│   │   │       └── useLanguage.ts
+│   │   └── package.json
+│   └── ui/                  # Shared React Native components
+│       ├── src/
+│       │   ├── components/
+│       │   └── tokens/
+│       └── package.json
+├── package.json             # Root workspace config
+├── turbo.json              # Turborepo pipeline config
+└── tsconfig.json           # Shared TypeScript config
+Onboarding Checklist
+ Clone repo and run yarn to install dependencies
+
+ Read this architecture document completely
+
+ Understand the ZERO RAW STRINGS policy
+
+ Run yarn run dev to start development servers
+
+ Explore packages/ui to see existing primitives
+
+ Explore packages/i18n to understand translation system
+
+ Review apps/web and apps/native to see usage patterns
+
+ Understand React Native primitives (View, Text, Pressable)
+
+ Learn NativeWind className syntax
+
+ Review platform-specific file extension pattern
+
+ Practice adding new translations following the 3-step workflow
+
+ Set up your editor with TypeScript and Prettier support
+
+ Configure ESLint to flag raw strings in components
+
+Common Pitfalls to Avoid
+❌ Using <div> instead of <View>
+❌ Using onClick instead of onPress
+❌ Importing web-only libraries in packages/ui
+❌ Adding inline styles directly in primitives
+❌ Mixing HTML and React Native components
+❌ Using className from web Tailwind instead of NativeWind
+❌ Adding business logic to UI components
+❌ Platform-specific code without file extensions
+❌ 🚨 Using ANY raw strings in components
+❌ 🚨 Using raw translation keys like t('welcome')
+❌ 🚨 Putting translations in packages/ui or packages/app
+❌ 🚨 Forgetting to add new keys to STRINGS constants
+❌ 🚨 Hard-coding error messages, placeholders, or labels
+❌ 🚨 Using console.log('some text') without constants
+❌ 🚨 Importing i18n directly in UI components
+
+ESLint Rule Suggestion
+Add this to your ESLint config to enforce NO RAW STRINGS:
+
+text
+{
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "JSXText[value=/\\w/]",
+        "message": "No raw text in JSX. Use i18n with STRINGS constants."
+      }
+    ]
+  }
+}
+Resources
+React Native Documentation
+
+React Native Web
+
+Expo Documentation
+
+Next.js Documentation
+
+NativeWind Documentation
+
+Turborepo Documentation
+
+i18next Documentation
+
+react-i18next Documentation
+
+expo-localization Documentation

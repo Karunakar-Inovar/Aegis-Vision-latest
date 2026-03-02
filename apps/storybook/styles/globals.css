@@ -1,0 +1,21 @@
+@import "../../../packages/ui/styles/variables.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: var(--font-sans);
+  }
+
+  #storybook-root {
+    @apply min-h-screen bg-background font-sans;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+}
