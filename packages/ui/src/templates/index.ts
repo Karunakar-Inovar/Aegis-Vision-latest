@@ -6,6 +6,8 @@ export * from "./future-features-section";
 export * from "./reconfigure-modal";
 export * from "./setup-layout";
 export * from "./sidebar-feature-banner";
+export * from "./executive-layout";
+
 
 // Theme is now exported from the theme module
 // Use: import { ThemeProvider, useTheme } from "ui/theme";
