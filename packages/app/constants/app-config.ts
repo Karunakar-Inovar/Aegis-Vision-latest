@@ -34,12 +34,7 @@ export const ROUTES = {
     INCIDENTS_CREATE: "/admin/incidents/create",
     USERS: "/admin/users",
     PIPELINES: "/admin/pipelines",
-    ALERTS:"/admin/alerts",
-    MODELS: "/admin/models",
-    MODEL_DETAIL: (id: number | string) => `/admin/models/${id}`,
-    MODEL_BUILD: (id: number | string) => `/admin/models/${id}/build`,
-    MODEL_BUILD_STEP: (id: number | string, step: string) =>
-      `/admin/models/${id}/build/${step}`,
+    ALERTS:"/admin/alerts"
   },
   MONITOR: {
     SUMMARY: "/monitor/summary",
@@ -50,6 +45,14 @@ export const ROUTES = {
   },
   STAKEHOLDER: {
     REPORTS: "/stakeholder/reports",
+  },
+  EXECUTIVE: {
+    DASHBOARD: "/executive/dashboard",
+    INSIGHTS: "/executive/insights",
+    INCIDENTS: "/executive/incidents",
+    ALERTS: "/executive/alerts",
+    REPORTS: "/executive/reports",
+    SETTINGS: "/executive/settings",
   },
 } as const;
 
