@@ -2289,15 +2289,15 @@ function AddModelWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Add New Model</DialogTitle>
           <DialogDescription>
             {isByomUpload ? byomDialogDescription() : defaultDialogDescription()}
           </DialogDescription>
         </DialogHeader>
-        <div className="py-2"><StepIndicator />{renderStep()}</div>
-        <DialogFooter>{renderFooter()}</DialogFooter>
+        <div className="py-2 flex-1 overflow-y-auto min-h-0"><StepIndicator />{renderStep()}</div>
+        <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t border-border">{renderFooter()}</DialogFooter>
       </DialogContent>
     </Dialog>
   );

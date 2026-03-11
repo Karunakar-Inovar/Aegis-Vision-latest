@@ -1,6 +1,7 @@
 "use client";
 
 import { StakeholderLayout, Snackbar, useSnackbar } from "ui";
+import { ChatbotToggle } from "@/components/chatbot/ChatbotToggle";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentUser, logout, normalizeUserRole } from "app/utils/auth";
@@ -62,6 +63,7 @@ export default function StakeholderLayoutWrapper({
       onLogout={handleLogout}
       logoutLabel={UI_MESSAGES.auth.logoutAction}
       userMenuTitle={UI_MESSAGES.auth.userMenuTitle}
+      headerActions={<ChatbotToggle />}
     >
       {children}
       <Snackbar

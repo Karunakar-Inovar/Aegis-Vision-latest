@@ -17,14 +17,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
   Label,
   ToggleSwitch,
   Snackbar,
@@ -33,18 +25,12 @@ import {
 import {
   ArrowLeft,
   Brain,
-  MoreVertical,
-  Copy,
-  Trash2,
-  Archive,
   CheckCircle2,
   AlertTriangle,
   Shield,
   Info,
   Upload,
   FileText,
-  Tag,
-  Power,
   Cpu,
   X,
   Pencil,
@@ -112,30 +98,14 @@ export default function ModelDetailPage() {
   const model = useModelStore((s) => s.models.find((m) => m.id === modelId));
   const hydrated = useHasHydrated();
   const updateModel = useModelStore((s) => s.updateModel);
-  const removeModel = useModelStore((s) => s.removeModel);
 
   // ── Local UI state ─────────────────────────────────────────────────────
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
   // Use-case editing
   const [useCaseModalOpen, setUseCaseModalOpen] = useState(false);
   const [editUseCaseName, setEditUseCaseName] = useState("");
   const [editUseCaseActive, setEditUseCaseActive] = useState(true);
   const [editUseCaseClasses, setEditUseCaseClasses] = useState<string[]>([]);
   const [newClassInput, setNewClassInput] = useState("");
-
-  // ── Close kebab on outside click ───────────────────────────────────────
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    if (menuOpen) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
 
   // ── Use Case modal setup ──────────────────────────────────────────────
   const openUseCaseModal = useCallback(() => {
@@ -166,15 +136,6 @@ export default function ModelDetailPage() {
     snackbar.success("Use case updated successfully.");
     setUseCaseModalOpen(false);
   }, [model, editUseCaseClasses, updateModel, snackbar]);
-
-  // ── Delete handler ─────────────────────────────────────────────────────
-  const handleDeleteModel = useCallback(() => {
-    if (!model) return;
-    removeModel(model.id);
-    snackbar.success(`Model "${model.name}" deleted.`);
-    setDeleteDialogOpen(false);
-    router.push("/admin/models");
-  }, [model, removeModel, snackbar, router]);
 
   // ── Loading / not found ────────────────────────────────────────────────
   if (!hydrated) {
@@ -217,30 +178,33 @@ export default function ModelDetailPage() {
   const isPreDefined = model.sourceType === ModelSourceType.PRE_DEFINED;
   const isBuildYourModel = model.sourceType === ModelSourceType.BUILD_YOUR_MODEL;
 
+  // Use case name for page header context (page is accessed via use case)
+  const useCaseName = model.name;
+
   // ══════════════════════════════════════════════════════════════════════════
   //  Render
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      <div className="flex w-full items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onPress={() => router.push("/admin/models")}>
           <Icon icon={ArrowLeft} className="h-4 w-4" />
         </Button>
         <span className="text-sm text-muted-foreground">Models</span>
         <span className="text-sm text-muted-foreground">/</span>
-        <span className="text-sm font-medium text-foreground truncate">{model.name}</span>
+        <span className="text-sm font-medium text-foreground truncate">{useCaseName}</span>
       </div>
 
       {/* ── Title row ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4 min-w-0">
           <div className="p-3 rounded-full bg-muted shrink-0">
             <Icon icon={Brain} className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="space-y-2 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground truncate">
-              {model.name}
+              {useCaseName}
             </h1>
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={sourceTypeColors[model.sourceType] || ""}>
@@ -253,35 +217,20 @@ export default function ModelDetailPage() {
           </div>
         </div>
 
-        {/* Kebab menu */}
+        {/* Edit Use Case */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="relative" ref={menuRef}>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onPress={() => setMenuOpen((p) => !p)}>
-              <Icon icon={MoreVertical} className="h-4 w-4" />
-            </Button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95">
-                <button type="button" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors cursor-pointer" onClick={() => setMenuOpen(false)}>
-                  <Icon icon={Copy} className="h-4 w-4 text-muted-foreground" />Duplicate Model
-                </button>
-                <button type="button" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors cursor-pointer" onClick={() => setMenuOpen(false)}>
-                  <Icon icon={Archive} className="h-4 w-4 text-muted-foreground" />Archive
-                </button>
-                <Separator className="my-1" />
-                <button type="button" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer" onClick={() => { setMenuOpen(false); setDeleteDialogOpen(true); }}>
-                  <Icon icon={Trash2} className="h-4 w-4" />Delete Model
-                </button>
-              </div>
-            )}
-          </div>
+          <Button variant="outline" size="sm" onPress={openUseCaseModal} className="flex flex-row items-center gap-2">
+            <Icon icon={Pencil} className="h-3.5 w-3.5 shrink-0" />
+            Edit Use Case
+          </Button>
         </div>
       </div>
 
       {/* ── Section Cards ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="flex w-full flex-col gap-5">
 
         {/* ── 1) Model Overview Card ───────────────────────────────────── */}
-        <Card>
+        <Card className="w-full">
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-5">
               <Icon icon={Cpu} className="h-4 w-4 text-muted-foreground" />
@@ -289,7 +238,7 @@ export default function ModelDetailPage() {
             </div>
             <div className="space-y-4">
               <FieldRow
-                label="Model Name"
+                label="Use Case Name"
                 helper="Must be unique across all models in the workspace"
               >
                 <span className="text-sm font-medium text-foreground">{model.name}</span>
@@ -342,73 +291,9 @@ export default function ModelDetailPage() {
           </CardContent>
         </Card>
 
-        {/* ── 2) Use Case Card ────────────────────────────────────────── */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Icon icon={Tag} className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">Use Case</h3>
-              </div>
-              <Button variant="outline" size="sm" onPress={openUseCaseModal}>
-                <Icon icon={Pencil} className="h-3.5 w-3.5 mr-1.5" />
-                Edit Use Case
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <FieldRow label="Use Case Name">
-                <span className="text-sm font-medium text-foreground">{model.name}</span>
-              </FieldRow>
-
-              <Separator />
-
-              <FieldRow
-                label="Active"
-                helper="Only active use cases are available to select in pipelines"
-              >
-                <Badge
-                  variant="outline"
-                  className={
-                    model.status !== ModelStatus.DRAFT
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-900/30 dark:text-slate-400"
-                  }
-                >
-                  <Icon icon={Power} className="h-3 w-3 mr-1" />
-                  {model.status !== ModelStatus.DRAFT ? "Active" : "Inactive"}
-                </Badge>
-              </FieldRow>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm text-muted-foreground">Classes / Objects</span>
-                  <HelperTooltip text="Used for pipelines and alerting rules" />
-                </div>
-                {model.labels.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {model.labels.map((label) => (
-                      <Badge
-                        key={label}
-                        variant="outline"
-                        className="bg-muted/50 text-foreground border-border px-2.5 py-1 text-xs font-medium"
-                      >
-                        {label}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No classes defined yet.</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── 3) Upload & Validation Card (BYOM only) ─────────────────── */}
+        {/* ── 2) Upload & Validation Card (BYOM only) ─────────────────── */}
         {isByom && model.byomConfig && (
-          <Card className="lg:col-span-2">
+          <Card className="w-full">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
@@ -552,7 +437,7 @@ export default function ModelDetailPage() {
 
         {/* ── 4) Pre-defined Info Card ─────────────────────────────────── */}
         {isPreDefined && (
-          <Card className="lg:col-span-2">
+          <Card className="w-full">
             <CardContent className="p-5">
               <div className="flex items-start gap-4 p-4 rounded-lg bg-violet-50/50 border border-violet-100 dark:bg-violet-900/10 dark:border-violet-800/30">
                 <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30 shrink-0">
@@ -573,7 +458,7 @@ export default function ModelDetailPage() {
 
         {/* ── 5) Build Your Model Info Card ────────────────────────────── */}
         {isBuildYourModel && (
-          <Card className="lg:col-span-2">
+          <Card className="w-full">
             <CardContent className="p-5">
               <div className="flex items-start gap-4 p-4 rounded-lg bg-teal-50/50 border border-teal-100 dark:bg-teal-900/10 dark:border-teal-800/30">
                 <div className="p-2 rounded-lg bg-teal-100 dark:bg-teal-900/30 shrink-0">
@@ -600,7 +485,7 @@ export default function ModelDetailPage() {
 
         {/* ── Model Contract (BYOM with contract) ─────────────────────── */}
         {model.byomConfig?.contract && (
-          <Card className="lg:col-span-2">
+          <Card className="w-full">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-5">
                 <Icon icon={Shield} className="h-4 w-4 text-muted-foreground" />
@@ -750,26 +635,6 @@ export default function ModelDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ── Delete Model Dialog ────────────────────────────────────────── */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Model</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &quot;{model.name}&quot;? This action cannot be undone. All assignments and versions will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel asChild><Button variant="outline">Cancel</Button></AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button variant="destructive" onPress={handleDeleteModel}>
-                <Icon icon={Trash2} className="h-4 w-4 mr-2" />Delete Model
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Snackbar */}
       <Snackbar visible={snackbar.state.visible} message={snackbar.state.message} variant={snackbar.state.variant} onClose={snackbar.hide} />

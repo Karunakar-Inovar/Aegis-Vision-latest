@@ -1,6 +1,4 @@
 @import "../../../packages/ui/styles/variables.css";
-/* Required for C1/Crayon components (AegisChat, AlertOverlay) - without this they render as invisible */
-@import "@crayonai/react-ui/styles/index.css";
 
 @tailwind base;
 @tailwind components;
@@ -23,6 +21,73 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  @keyframes chatbot-bubble-enter {
+    from {
+      transform: scale(0);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-chatbot-bubble-enter {
+    animation: chatbot-bubble-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes msg-enter-fade-slide {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes msg-enter-fade-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-msg-enter {
+    animation: msg-enter-fade-slide 200ms ease-out forwards;
+  }
+
+  .animate-msg-enter-scale {
+    animation: msg-enter-fade-scale 200ms ease-out forwards;
+  }
+
+  @keyframes typing-dot-bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-4px);
+    }
+  }
+
+  .animate-typing-dot-1 {
+    animation: typing-dot-bounce 1.4s ease-in-out infinite;
+    animation-delay: 0s;
+  }
+  .animate-typing-dot-2 {
+    animation: typing-dot-bounce 1.4s ease-in-out infinite;
+    animation-delay: 0.2s;
+  }
+  .animate-typing-dot-3 {
+    animation: typing-dot-bounce 1.4s ease-in-out infinite;
+    animation-delay: 0.4s;
   }
 }
 

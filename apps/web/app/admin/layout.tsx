@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminLayout, ThemeToggle, Snackbar, useSnackbar } from "ui";
+import { ChatbotToggle } from "@/components/chatbot/ChatbotToggle";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -130,6 +131,7 @@ export default function AdminLayoutWrapper({
       logoAlt={logoAlt}
       logoWidth={logoWidth}
       logoHeight={logoHeight}
+      headerActions={<ChatbotToggle />}
     >
       {children}
       <Snackbar

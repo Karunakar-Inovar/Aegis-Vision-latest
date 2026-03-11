@@ -1,6 +1,7 @@
 "use client";
 
 import { MonitorLayout, Snackbar, useSnackbar, ThemeToggle } from "ui";
+import { ChatbotToggle } from "@/components/chatbot/ChatbotToggle";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentUser, logout, reconnectSocket, normalizeUserRole } from "app/utils/auth";
@@ -116,6 +117,7 @@ export default function MonitorLayoutWrapper({
       logoSrc={logoSrc}
       logoSrcDark={logoSrcDark}
       logoAlt={APP_BRAND.LOGO_ALT}
+      headerActions={<ChatbotToggle />}
     >
       {children}
       <Snackbar

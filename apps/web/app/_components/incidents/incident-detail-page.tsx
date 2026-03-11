@@ -60,7 +60,7 @@ export function IncidentDetailPage({
 }: {
   incidentId: number;
   backHref: string;
-  mode: "admin" | "monitor";
+  mode: "admin" | "monitor" | "executive";
 }) {
   const router = useRouter();
   const snackbar = useSnackbar();
@@ -760,107 +760,113 @@ export function IncidentDetailPage({
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              {formError ? (
-                <Alert variant="destructive">
-                  <p className="text-sm">{formError}</p>
-                </Alert>
-              ) : null}
+          {/* Actions - hidden for executive (read-only) */}
+          {mode !== "executive" && (
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                {formError ? (
+                  <Alert variant="destructive">
+                    <p className="text-sm">{formError}</p>
+                  </Alert>
+                ) : null}
 
-              <div className="grid gap-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Status</p>
-                  <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">
-                    Assigned To
-                  </p>
-                  <Select
-                    value={assignedTo}
-                    onValueChange={(value) => {
-                      setAssignedTo(value);
-                      const selectedUser = assignedToOptions.find(
-                        (u) => u.value === value,
-                      );
-                      if (selectedUser) {
-                        setAssignedToName(selectedUser.label);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select assignee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {assignedToOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Notes</p>
-                  <Textarea
-                    placeholder="Add notes for this incident..."
-                    value={notes}
-                    onChangeText={setNotes}
-                    rows={4}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Notes are required to close incidents.
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <div>
+                <div className="grid gap-3">
+                  <div className="space-y-2">
                     <p className="text-sm font-medium text-foreground">
-                      Highlight for next shift
+                      Status
                     </p>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">
+                      Assigned To
+                    </p>
+                    <Select
+                      value={assignedTo}
+                      onValueChange={(value) => {
+                        setAssignedTo(value);
+                        const selectedUser = assignedToOptions.find(
+                          (u) => u.value === value,
+                        );
+                        if (selectedUser) {
+                          setAssignedToName(selectedUser.label);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select assignee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignedToOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">
+                      Notes
+                    </p>
+                    <Textarea
+                      placeholder="Add notes for this incident..."
+                      value={notes}
+                      onChangeText={setNotes}
+                      rows={4}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      Shows up in shift handoff summary
+                      Notes are required to close incidents.
                     </p>
                   </div>
-                  <ToggleSwitch
-                    checked={highlightForNextShift}
-                    onCheckedChange={setHighlightForNextShift}
-                  />
+
+                  <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Highlight for next shift
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Shows up in shift handoff summary
+                      </p>
+                    </div>
+                    <ToggleSwitch
+                      checked={highlightForNextShift}
+                      onCheckedChange={setHighlightForNextShift}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <Button
-                onPress={handleSave}
-                className="w-full"
-                disabled={isSaving}
-              >
-                <Icon icon={Save} className="h-4 w-4 mr-2" />
-                {isSaving ? "Saving..." : "Save Updates"}
-              </Button>
+                <Button
+                  onPress={handleSave}
+                  className="w-full"
+                  disabled={isSaving}
+                >
+                  <Icon icon={Save} className="h-4 w-4 mr-2" />
+                  {isSaving ? "Saving..." : "Save Updates"}
+                </Button>
 
-              <div className="text-xs text-muted-foreground">
-                Last updated:{" "}
-                {lastSavedAt ??
-                  MomentUtils.formatDate(incident.CreatedDateTime)}{" "}
-                by {MomentUtils.formatTime(incident.CreatedDateTime)}
-              </div>
-            </CardContent>
-          </Card>
+                <div className="text-xs text-muted-foreground">
+                  Last updated:{" "}
+                  {lastSavedAt ??
+                    MomentUtils.formatDate(incident.CreatedDateTime)}{" "}
+                  by {MomentUtils.formatTime(incident.CreatedDateTime)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

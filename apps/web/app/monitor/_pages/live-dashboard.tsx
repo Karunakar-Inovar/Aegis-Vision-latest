@@ -49,16 +49,12 @@ import {
   type PipelineDetail,
 } from "app/utils/pipeline";
 import { fetchAllAlerts, type Alert } from "app/utils/alert";
-import { AegisChat } from "@/components/AegisChat";
-import { AlertOverlay, type Alert as OverlayAlert } from "@/components/AlertOverlay";
 import {
   Search,
   XCircle,
   AlertTriangle,
   AlertCircle,
   Camera,
-  BarChart,
-  Bell,
   Maximize2,
   Square,
   RefreshCw,
@@ -73,37 +69,6 @@ import {
 } from "app/constants";
 
 const LIVE_BASE_ROUTE = "/monitor/live";
-
-const MOCK_ALERTS: OverlayAlert[] = [
-  {
-    alertId: "ALT-2024-001",
-    cameraId: "CAM-01",
-    severity: "critical",
-    type: "Unauthorized Access",
-    timestamp: new Date().toISOString(),
-    thumbnailUrl: undefined,
-    description: "Person detected in restricted zone after hours. Motion in perimeter fence area.",
-    location: "North Gate - Perimeter",
-  },
-  {
-    alertId: "ALT-2024-002",
-    cameraId: "CAM-07",
-    severity: "high",
-    type: "Equipment Tampering",
-    timestamp: new Date(Date.now() - 300000).toISOString(),
-    description: "Cover removed from control panel. Possible tampering with safety switch.",
-    location: "Assembly Line B",
-  },
-  {
-    alertId: "ALT-2024-003",
-    cameraId: "CAM-12",
-    severity: "low",
-    type: "Slip Hazard",
-    timestamp: new Date(Date.now() - 600000).toISOString(),
-    description: "Spill detected in corridor. Low severity; maintenance notified.",
-    location: "East Wing Corridor",
-  },
-];
 
 export default function MonitorLiveDashboard() {
   const router = useRouter();
@@ -855,7 +820,7 @@ export default function MonitorLiveDashboard() {
 
   return (
     <div className="flex w-full items-stretch gap-4 p-6">
-      <div className="w-[70%] min-w-0 flex-shrink-0 space-y-6">
+      <div className="w-full min-w-0 flex-shrink-0 space-y-6">
       {/* Route table (Monitor IA)
         - /monitor/live (primary) ← old /monitor/dashboard redirects here
         - /monitor/alerts (alerts/timeline) ← old alert routes redirect here
@@ -1450,7 +1415,7 @@ export default function MonitorLiveDashboard() {
               <CardTitle className="text-base">
                 {isLoading
                   ? "Loading..."
-                  : currentPipeline?.PipelineName || "All Pipelines"}
+                  : `${currentPipeline?.PipelineName || "All Pipelines"} (${onlineCamerasCount}/${pipelineFilteredCameras.length} Online)`}
               </CardTitle>
               {currentPipeline?.PipelineName &&
                 (onlineCamerasCount > 0 ? (
@@ -1481,16 +1446,8 @@ export default function MonitorLiveDashboard() {
                 <span>Fullscreen Grid</span>
               </Button>
               {onlineCamerasCount > 0 ? (
-                <Button
-                  disabled={!currentPipeline?.PipelineName}
-                  variant="destructive"
-                  size="sm"
-                  onPress={handleStopPipeline}
-                  className="h-9 flex-row items-center"
-                >
-                  <Icon icon={Square} className="h-4 w-4 mr-2" />
-                  <span>Stop Pipeline</span>
-                </Button>
+                // Stop Pipeline button hidden for now
+                null
               ) : (
                 <Button
                   disabled={!currentPipeline?.PipelineName}
@@ -1519,53 +1476,6 @@ export default function MonitorLiveDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-              <Icon icon={Camera} className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Cameras</p>
-                <p className="text-lg font-semibold">
-                  {onlineCamerasCount}/{pipelineFilteredCameras.length} Online
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-              <Icon icon={BarChart} className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Incidents (Total)
-                </p>
-                <p className="text-lg font-semibold">{totalIncidents}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-              <Icon
-                icon={AlertTriangle}
-                className="h-5 w-5 text-muted-foreground"
-              />
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Alerts Today
-                </p>
-                <p className="text-lg font-semibold">{totalAlerts}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-              <Icon icon={Bell} className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Notifications</p>
-                {notificationChannels.length > 0 ? (
-                  <p className="text-lg font-semibold">
-                    {[...new Set(notificationChannels)].join(", ")}
-                  </p>
-                ) : (
-                  <p className="text-lg font-semibold">Email</p>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Video Feeds Grid */}
           {filteredCameras.length > 0 ? (
             !isFullscreen && renderCameraGrid()
@@ -1659,20 +1569,6 @@ export default function MonitorLiveDashboard() {
         onClose={snackbar.hide}
       />
       </div>
-      {/* Right panel: AegisChat + AlertOverlay list */}
-      <aside
-        aria-label="Chat and alerts"
-        className="flex w-[30%] min-w-[320px] max-w-[420px] flex-shrink-0 flex-col gap-4 border-l border-border pl-4"
-      >
-        <div className="h-[50%] min-h-[280px] flex-shrink-0">
-          <AegisChat className="h-full w-full min-h-[260px]" />
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-          {MOCK_ALERTS.map((alert) => (
-            <AlertOverlay key={alert.alertId} alert={alert} />
-          ))}
-        </div>
-      </aside>
     </div>
   );
 }

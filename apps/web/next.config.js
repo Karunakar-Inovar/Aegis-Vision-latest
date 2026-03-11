@@ -6,8 +6,20 @@ const { withExpo } = require("@expo/next-adapter");
 // Monorepo root node_modules (apps/web -> apps -> root)
 const rootNodeModules = path.resolve(__dirname, "../../node_modules");
 
+// Backend API URL for proxy (avoids CORS and network reachability issues in development)
+const apiBackendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500/api";
+
 module.exports = withExpo({
   reactStrictMode: true,
+  // Proxy API requests to backend - fixes "Network Error" from CORS or unreachable backend
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiBackendUrl}/:path*`,
+      },
+    ];
+  },
   eslint: {
     ignoreDuringBuilds: true, // Suppress ESLint checks during production builds
   },
@@ -31,9 +43,6 @@ module.exports = withExpo({
       "react-native$": "react-native-web",
       "react-native/Libraries/Image/AssetRegistry":
         "react-native-web/dist/cjs/modules/AssetRegistry", // Fix for loading images in web builds with Expo-Image
-      // Ensure @crayonai/react-core peer deps resolve from monorepo root
-      "eventsource-parser": path.join(rootNodeModules, "eventsource-parser"),
-      "tiny-invariant": path.join(rootNodeModules, "tiny-invariant"),
     };
     config.resolve.extensions = [
       ".web.js",
