@@ -836,11 +836,14 @@ Could you be more specific about what you'd like me to look for? I can help with
   };
 }
 
+/** Attachment metadata — client sends { type, fileName, fileSize }, NOT actual file blobs */
+type AttachmentMeta = { type: string; fileName?: string; fileSize?: number };
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const message = (body.message as string) || "";
-    const attachments = (body.attachments as Array<{ type: string }>) || [];
+    const attachments = (body.attachments as AttachmentMeta[]) || [];
     const stream = (body.stream as boolean) ?? true;
     const history = (body.history as HistoryMessage[]) || [];
     const detectionModel = (body.detectionModel as string) || null;

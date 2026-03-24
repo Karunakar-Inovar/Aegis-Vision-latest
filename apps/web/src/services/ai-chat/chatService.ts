@@ -1,12 +1,20 @@
 /**
  * AI Chat service — handles send → upload → process → respond flow.
  * Supports detection model types (PPE, Smoke, Scratch, etc.) and general vision AI.
+ *
+ * In mock/demo mode (NEXT_PUBLIC_MOCK_API=true or no NEXT_PUBLIC_API_URL), file upload
+ * is handled entirely client-side to avoid Vercel's 4.5MB body limit and 10s timeout.
  */
 
 import type { ChatMessage } from "./types";
 
 const UPLOAD_BASE = "/api/chatbot/upload";
 const MESSAGE_BASE = "/api/ai-chat/message";
+
+const isMockMode =
+  typeof window !== "undefined" &&
+  (process.env.NEXT_PUBLIC_MOCK_API === "true" ||
+    !process.env.NEXT_PUBLIC_API_URL);
 
 interface UploadedAttachment {
   fileId: string;
@@ -16,6 +24,18 @@ interface UploadedAttachment {
 }
 
 async function uploadFile(file: File): Promise<UploadedAttachment> {
+  if (isMockMode) {
+    const localUrl = URL.createObjectURL(file);
+    await new Promise((r) => setTimeout(r, 500 + Math.random() * 1000));
+
+    return {
+      fileId: crypto.randomUUID(),
+      type: file.type.startsWith("video/") ? "video" : "image",
+      fileName: file.name,
+      fileUrl: localUrl,
+    };
+  }
+
   const formData = new FormData();
   formData.append("file", file);
 
