@@ -126,14 +126,37 @@ export function searchConversations(query: string): ChatConversation[] {
 }
 
 export function autoTitleConversation(id: string, firstMessage: string): void {
-  const text = firstMessage.trim();
-  if (!text) return;
-  const cleaned = text
+  let title = firstMessage
+    .trim()
+    .slice(0, 50)
+    .replace(/\n/g, " ")
     .replace(/\s+/g, " ")
-    .replace(/^\s+|\s+$/g, "")
-    .slice(0, 40);
-  const title = cleaned.length >= 40 ? cleaned.slice(0, 37) + "..." : cleaned;
-  updateConversation(id, { title });
+    .trim();
+
+  if (!title) return;
+
+  // If the title ends mid-word, trim to last space
+  if (title.length === 50) {
+    const lastSpace = title.lastIndexOf(" ");
+    if (lastSpace > 30) {
+      title = title.slice(0, lastSpace);
+    }
+  }
+
+  // Check for duplicate titles and append a number if needed
+  const allConversations = getAllConversations();
+  const existingTitles = allConversations
+    .filter((c) => c.id !== id)
+    .map((c) => c.title.toLowerCase());
+
+  let finalTitle = title;
+  let counter = 2;
+  while (existingTitles.includes(finalTitle.toLowerCase())) {
+    finalTitle = `${title} (${counter})`;
+    counter++;
+  }
+
+  renameConversation(id, finalTitle);
 }
 
 export function groupByTime(

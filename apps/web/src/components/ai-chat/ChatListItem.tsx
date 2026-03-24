@@ -1,9 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Pin, MoreHorizontal } from "lucide-react";
-import { ChatItemMenu } from "./ChatItemMenu";
+import { Pin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { ChatConversation } from "@/services/ai-chat/chatHistory";
+
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        handler();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [ref, handler]);
+}
 
 interface ChatListItemProps {
   chat: ChatConversation;
@@ -29,7 +40,6 @@ export function ChatListItem({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(chat.title);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,51 +74,37 @@ export function ChatListItem({
     [handleSaveRename, chat.title]
   );
 
-  const handleDeleteConfirm = useCallback(() => {
-    onDelete(chat.id);
-    setShowDeleteConfirm(false);
+  const handleRename = () => {
+    setIsEditing(true);
     setMenuOpen(false);
-  }, [chat.id, onDelete]);
+  };
 
-  if (showDeleteConfirm) {
-    return (
-      <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-        <p className="text-sm text-gray-700">Delete this chat?</p>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setShowDeleteConfirm(false)}
-            className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleDeleteConfirm}
-            className="rounded-lg px-3 py-1.5 text-sm text-white bg-red-600 hover:bg-red-700"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handlePin = () => {
+    isPinned ? onUnpin(chat.id) : onPin(chat.id);
+    setMenuOpen(false);
+  };
+
+  const handleDelete = () => {
+    onDelete(chat.id);
+    setMenuOpen(false);
+  };
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, () => setMenuOpen(false));
 
   return (
-    <div className="relative">
+    <div ref={menuRef} className="relative group">
       <button
         type="button"
         onClick={() => onSelect(chat.id)}
-        className={`group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-          isActive
-            ? "bg-gray-200 text-gray-800"
-            : "text-gray-600 hover:bg-gray-100"
-        }`}
+        className={`
+          w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate
+          ${isActive
+            ? "bg-gray-200/80 text-gray-900 font-medium"
+            : "text-gray-600 hover:bg-gray-100/80"
+          }
+        `}
       >
-        {isPinned && (
-          <Pin className="h-3 w-3 flex-shrink-0 text-indigo-500" />
-        )}
-
         {isEditing ? (
           <input
             ref={inputRef}
@@ -118,44 +114,56 @@ export function ChatListItem({
             onBlur={handleSaveRename}
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 min-w-0 rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100"
+            className="w-full min-w-0 rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100"
           />
         ) : (
-          <span className="flex-1 truncate">{chat.title}</span>
-        )}
-
-        {!isEditing && (
-          <div
-            className="flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen((o) => !o);
-              }}
-              className="rounded-md p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-              aria-label="Chat options"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </div>
+          chat.title
         )}
       </button>
 
+      {/* Three-dot menu — only on hover, positioned absolutely to the right */}
+      {!isEditing && (
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
+            }}
+            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md"
+            aria-label="Chat options"
+          >
+            <MoreHorizontal className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Dropdown menu */}
       {menuOpen && (
-        <ChatItemMenu
-          onRename={() => {
-            setIsEditing(true);
-            setMenuOpen(false);
-          }}
-          onDelete={() => setShowDeleteConfirm(true)}
-          onPin={() => onPin(chat.id)}
-          onUnpin={() => onUnpin(chat.id)}
-          isPinned={isPinned}
-          onClose={() => setMenuOpen(false)}
-        />
+        <div className="absolute right-0 top-full mt-0.5 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+          <button
+            type="button"
+            onClick={() => handleRename()}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+          >
+            <Pencil className="w-3 h-3" /> Rename
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePin()}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+          >
+            <Pin className="w-3 h-3" /> {isPinned ? "Unpin" : "Pin"}
+          </button>
+          <div className="my-0.5 border-t border-gray-100" />
+          <button
+            type="button"
+            onClick={() => handleDelete()}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50"
+          >
+            <Trash2 className="w-3 h-3" /> Delete
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ScanLine, CheckCircle2, ImageOff } from "lucide-react";
+import { ScanLine, CheckCircle2, ImageOff, Check } from "lucide-react";
 
 interface BoundingBox {
   x: number;
@@ -25,6 +25,7 @@ interface AnnotatedImageResultProps {
   modelName: string;
   processingTime: number;
   metadata?: { mediaType?: string };
+  onLogIncidents?: (detections: Detection[]) => void;
 }
 
 function getSeverityColor(severity: string): string {
@@ -63,10 +64,44 @@ export function AnnotatedImageResult({
   modelName,
   processingTime,
   metadata,
+  onLogIncidents,
 }: AnnotatedImageResultProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [selectedDetections, setSelectedDetections] = useState<Set<string>>(new Set());
+  const [isSelectMode, setIsSelectMode] = useState(false);
+
+  const toggleDetection = (id: string) => {
+    setSelectedDetections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (!isSelectMode) setIsSelectMode(true);
+  };
+
+  const toggleAll = () => {
+    if (selectedDetections.size === detections.length) {
+      setSelectedDetections(new Set());
+      setIsSelectMode(false);
+    } else {
+      setSelectedDetections(new Set(detections.map((d) => d.id)));
+    }
+  };
+
+  const handleLogIncidents = () => {
+    const detectionsToLog =
+      selectedDetections.size > 0
+        ? detections.filter((d) => selectedDetections.has(d.id))
+        : detections;
+
+    onLogIncidents?.(detectionsToLog);
+
+    setSelectedDetections(new Set());
+    setIsSelectMode(false);
+  };
 
   const isVideo =
     metadata?.mediaType === "video" ||
@@ -173,10 +208,37 @@ export function AnnotatedImageResult({
                 .map((det) => (
                   <div
                     key={det.id}
-                    className="px-4 py-2.5 flex items-start gap-3"
+                    className="group px-4 py-2.5 flex items-start gap-3 hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    onClick={() => toggleDetection(det.id)}
                   >
+                    {/* Checkbox — visible on hover OR when in select mode OR when this item is selected */}
                     <div
-                      className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0"
+                      className={`
+                        flex-shrink-0 mt-0.5 transition-all duration-150
+                        ${isSelectMode || selectedDetections.has(det.id)
+                          ? "w-4 opacity-100"
+                          : "w-0 opacity-0 group-hover:w-4 group-hover:opacity-100"
+                        }
+                      `}
+                    >
+                      <div
+                        className={`
+                          w-4 h-4 rounded border-2 flex items-center justify-center transition-colors
+                          ${selectedDetections.has(det.id)
+                            ? "bg-indigo-600 border-indigo-600"
+                            : "border-gray-300 bg-white hover:border-indigo-400"
+                          }
+                        `}
+                      >
+                        {selectedDetections.has(det.id) && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Severity dot */}
+                    <div
+                      className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
                       style={{ backgroundColor: getSeverityColor(det.severity) }}
                     />
                     <div className="flex-1 min-w-0">
@@ -205,15 +267,43 @@ export function AnnotatedImageResult({
 
             {/* Footer summary */}
             <div className="px-4 py-2.5 border-t border-gray-200 bg-white flex items-center justify-between">
-              <span className="text-xs text-gray-500">
-                {detections.length} detection
-                {detections.length !== 1 ? "s" : ""} found
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500">
+                  {detections.length} detection
+                  {detections.length !== 1 ? "s" : ""} found
+                </span>
+
+                {/* Select all toggle — shown when in select mode */}
+                {isSelectMode && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleAll();
+                    }}
+                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    {selectedDetections.size === detections.length
+                      ? "Deselect all"
+                      : "Select all"}
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                onClick={() => handleLogIncidents()}
+                className={`
+                  text-xs font-medium px-3 py-1.5 rounded-lg transition-colors
+                  ${selectedDetections.size > 0
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                    : "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                  }
+                `}
               >
-                Log as Incident →
+                {selectedDetections.size > 0
+                  ? `Log ${selectedDetections.size} as Incident${selectedDetections.size !== 1 ? "s" : ""} →`
+                  : "Log as Incident →"}
               </button>
             </div>
           </>
