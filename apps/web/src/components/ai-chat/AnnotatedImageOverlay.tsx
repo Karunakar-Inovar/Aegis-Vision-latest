@@ -6,7 +6,6 @@ interface BoundingBox {
   width: number;
   height: number;
 }
-
 interface Defect {
   id: string;
   type: string;
