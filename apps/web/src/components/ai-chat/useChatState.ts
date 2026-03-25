@@ -16,6 +16,7 @@ import {
   type ChatConversation,
 } from "@/services/ai-chat/chatHistory";
 import type { ChatMessage, AttachedFile } from "@/services/ai-chat/types";
+import { captureVideoFrame } from "@/utils/captureVideoFrame";
 
 export function useChatState() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -126,6 +127,19 @@ export function useChatState() {
       if (!isRetry) setAttachedFiles([]);
       setIsLoading(true);
 
+      let capturedFrameUrl: string | null = null;
+      for (const f of filesToSend) {
+        if (f.type === "video") {
+          try {
+            capturedFrameUrl = await captureVideoFrame(f.localUrl, 1);
+          } catch (err) {
+            console.warn("Failed to capture video frame:", err);
+          }
+        } else if (f.type === "image") {
+          capturedFrameUrl = f.localUrl;
+        }
+      }
+
       const assistantMsgId = crypto.randomUUID();
       let streamedContent = "";
 
@@ -158,10 +172,17 @@ export function useChatState() {
                 enrichedMetadata?.type === "detection-result" &&
                 filesToSend.length > 0
               ) {
+                const meta = enrichedMetadata as Record<string, unknown>;
                 const firstImage = filesToSend.find((f) => f.type === "image");
+                const firstVideo = filesToSend.find((f) => f.type === "video");
                 if (firstImage) {
-                  (enrichedMetadata as Record<string, unknown>).imageUrl =
-                    firstImage.localUrl;
+                  meta.imageUrl = firstImage.localUrl;
+                } else if (firstVideo) {
+                  meta.imageUrl = firstVideo.localUrl;
+                  meta.mediaType = "video";
+                }
+                if (capturedFrameUrl) {
+                  meta.capturedFrameUrl = capturedFrameUrl;
                 }
               }
               setMessages((prev) => {

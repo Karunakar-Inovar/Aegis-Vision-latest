@@ -24,6 +24,20 @@ interface DetectionResult {
   description?: string;
 }
 
+function defectQualityScore(detections: DetectionResult[]): number {
+  const criticalCount = detections.filter((d) => d.severity === "critical")
+    .length;
+  const majorCount = detections.filter((d) => d.severity === "major").length;
+  const totalIssues = detections.filter((d) => d.severity !== "info").length;
+  return Math.max(
+    0,
+    100 -
+      (criticalCount * 25 +
+        majorCount * 15 +
+        (totalIssues - criticalCount - majorCount) * 5)
+  );
+}
+
 function generateDetectionResults(
   detectionModel: string,
   _message: string
@@ -36,329 +50,381 @@ function generateDetectionResults(
   const processingTime = 200 + Math.floor(Math.random() * 300);
 
   switch (detectionModel) {
-    case "ppe-detection":
+    case "ppe-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Missing Goggles",
+          confidence: 0.94,
+          severity: "major",
+          boundingBox: { x: 0.15, y: 0.2, width: 0.12, height: 0.2 },
+          description: "Worker near station E not wearing safety goggles",
+        },
+        {
+          id: "d2",
+          label: "Missing Ear Protection",
+          confidence: 0.87,
+          severity: "major",
+          boundingBox: { x: 0.6, y: 0.15, width: 0.14, height: 0.25 },
+          description: "Worker near machinery without ear protection",
+        },
+        {
+          id: "d3",
+          label: "Hard Hat ✓",
+          confidence: 0.98,
+          severity: "info",
+          boundingBox: { x: 0.3, y: 0.1, width: 0.1, height: 0.12 },
+          description: "All workers wearing hard hats correctly",
+        },
+        {
+          id: "d4",
+          label: "Hi-Vis Vest ✓",
+          confidence: 0.96,
+          severity: "info",
+          boundingBox: { x: 0.35, y: 0.3, width: 0.15, height: 0.2 },
+          description: "All workers wearing high-visibility vests",
+        },
+      ];
+      const compliantCount = detections.filter((d) => d.severity === "info")
+        .length;
+      const totalChecks = detections.length;
+      const complianceRate = Math.round((compliantCount / totalChecks) * 100);
+      const violationCount = totalChecks - compliantCount;
       return {
         modelName: "PPE Kit Detection v2.1",
         processingTime,
-        textResponse:
-          "I've analyzed the image using the **PPE Kit Detection** model. Here are the results:\n\n**Compliance Score: 75%**\n\n4 out of 6 workers are fully compliant. 2 workers have missing safety equipment that needs immediate attention.",
-        detections: [
-          {
-            id: "d1",
-            label: "Missing Goggles",
-            confidence: 0.94,
-            severity: "major",
-            boundingBox: { x: 0.15, y: 0.2, width: 0.12, height: 0.2 },
-            description: "Worker near station E not wearing safety goggles",
-          },
-          {
-            id: "d2",
-            label: "Missing Ear Protection",
-            confidence: 0.87,
-            severity: "major",
-            boundingBox: { x: 0.6, y: 0.15, width: 0.14, height: 0.25 },
-            description: "Worker near machinery without ear protection",
-          },
-          {
-            id: "d3",
-            label: "Hard Hat ✓",
-            confidence: 0.98,
-            severity: "info",
-            boundingBox: { x: 0.3, y: 0.1, width: 0.1, height: 0.12 },
-            description: "All workers wearing hard hats correctly",
-          },
-          {
-            id: "d4",
-            label: "Hi-Vis Vest ✓",
-            confidence: 0.96,
-            severity: "info",
-            boundingBox: { x: 0.35, y: 0.3, width: 0.15, height: 0.2 },
-            description: "All workers wearing high-visibility vests",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the image using the **PPE Kit Detection** model. Here are the results:\n\n**Compliance Score: ${complianceRate}%**\n\n${compliantCount} out of ${totalChecks} checks passed. ${violationCount} worker${violationCount !== 1 ? "s have" : " has"} missing safety equipment that needs immediate attention.`,
       };
+    }
 
-    case "fire-smoke-detection":
+    case "fire-smoke-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Smoke Detected",
+          confidence: 0.82,
+          severity: "critical",
+          boundingBox: { x: 0.55, y: 0.05, width: 0.3, height: 0.25 },
+          description:
+            "Smoke-like haze detected in upper-right area of the image",
+        },
+        {
+          id: "d2",
+          label: "Heat Source",
+          confidence: 0.71,
+          severity: "major",
+          boundingBox: { x: 0.6, y: 0.2, width: 0.15, height: 0.15 },
+          description: "Possible heat source identified beneath smoke region",
+        },
+      ];
+      const criticalCount = detections.filter((d) => d.severity === "critical")
+        .length;
+      const majorCount = detections.filter((d) => d.severity === "major").length;
+      const alertLevel =
+        criticalCount > 0
+          ? "**Alert Level: 🔴 Critical**"
+          : majorCount > 0
+            ? "**Alert Level: ⚠️ Warning**"
+            : "**Alert Level: ✅ Clear**";
+      const detail =
+        criticalCount > 0
+          ? "Critical smoke or heat signatures detected. Initiate emergency verification procedures immediately."
+          : "Smoke-like patterns detected in one region. Recommend immediate visual verification by on-site personnel.";
       return {
         modelName: "Fire & Smoke Detection v3.0",
         processingTime,
-        textResponse:
-          "I've analyzed the image using the **Fire & Smoke Detection** model.\n\n**Alert Level: ⚠️ Warning**\n\nSmoke-like patterns detected in one region. Recommend immediate visual verification by on-site personnel.",
-        detections: [
-          {
-            id: "d1",
-            label: "Smoke Detected",
-            confidence: 0.82,
-            severity: "critical",
-            boundingBox: { x: 0.55, y: 0.05, width: 0.3, height: 0.25 },
-            description:
-              "Smoke-like haze detected in upper-right area of the image",
-          },
-          {
-            id: "d2",
-            label: "Heat Source",
-            confidence: 0.71,
-            severity: "major",
-            boundingBox: { x: 0.6, y: 0.2, width: 0.15, height: 0.15 },
-            description: "Possible heat source identified beneath smoke region",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the image using the **Fire & Smoke Detection** model.\n\n${alertLevel}\n\n${detail}`,
       };
+    }
 
-    case "scratch-detection":
+    case "scratch-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Scratch",
+          confidence: 0.94,
+          severity: "major",
+          boundingBox: { x: 0.1, y: 0.15, width: 0.25, height: 0.08 },
+          description:
+            "Linear scratch, ~3.2cm length, surface-level, does not penetrate coating",
+        },
+        {
+          id: "d2",
+          label: "Scratch",
+          confidence: 0.78,
+          severity: "minor",
+          boundingBox: { x: 0.5, y: 0.6, width: 0.15, height: 0.05 },
+          description:
+            "Hairline scratch, ~1cm, barely visible, within acceptable tolerance",
+        },
+      ];
+      const qualityScore = defectQualityScore(detections);
+      const majorScratches = detections.filter((d) => d.severity === "major")
+        .length;
       return {
         modelName: "Scratch Detection v2.1",
         processingTime,
-        textResponse:
-          "I've inspected the image using the **Scratch Detection** model.\n\n**Quality Score: 72/100**\n\n2 scratches detected on the surface. The major scratch may affect product aesthetics and should be reviewed.",
-        detections: [
-          {
-            id: "d1",
-            label: "Scratch",
-            confidence: 0.94,
-            severity: "major",
-            boundingBox: { x: 0.1, y: 0.15, width: 0.25, height: 0.08 },
-            description:
-              "Linear scratch, ~3.2cm length, surface-level, does not penetrate coating",
-          },
-          {
-            id: "d2",
-            label: "Scratch",
-            confidence: 0.78,
-            severity: "minor",
-            boundingBox: { x: 0.5, y: 0.6, width: 0.15, height: 0.05 },
-            description:
-              "Hairline scratch, ~1cm, barely visible, within acceptable tolerance",
-          },
-        ],
+        detections,
+        textResponse: `I've inspected the image using the **Scratch Detection** model.\n\n**Quality Score: ${qualityScore}/100**\n\n${detections.length} scratch(es) detected on the surface.${majorScratches > 0 ? " The major scratch may affect product aesthetics and should be reviewed." : ""}`,
       };
+    }
 
-    case "dent-detection":
+    case "dent-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Dent",
+          confidence: 0.82,
+          severity: "minor",
+          boundingBox: { x: 0.45, y: 0.4, width: 0.12, height: 0.1 },
+          description:
+            "Shallow dent, ~1.5cm diameter, minimal surface deformation",
+        },
+      ];
+      const qualityScore = defectQualityScore(detections);
       return {
         modelName: "Dent Detection v1.4",
         processingTime,
-        textResponse:
-          "I've analyzed the image using the **Dent Detection** model.\n\n**Quality Score: 85/100**\n\n1 minor dent detected. Within acceptable tolerance for this product category.",
-        detections: [
-          {
-            id: "d1",
-            label: "Dent",
-            confidence: 0.82,
-            severity: "minor",
-            boundingBox: { x: 0.45, y: 0.4, width: 0.12, height: 0.1 },
-            description:
-              "Shallow dent, ~1.5cm diameter, minimal surface deformation",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the image using the **Dent Detection** model.\n\n**Quality Score: ${qualityScore}/100**\n\n1 minor dent detected. Within acceptable tolerance for this product category.`,
       };
+    }
 
-    case "crack-detection":
+    case "crack-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Crack",
+          confidence: 0.96,
+          severity: "critical",
+          boundingBox: { x: 0.2, y: 0.3, width: 0.3, height: 0.04 },
+          description:
+            "Major crack, ~4.5cm, extends through surface layer, signs of propagation",
+        },
+        {
+          id: "d2",
+          label: "Micro-crack",
+          confidence: 0.73,
+          severity: "minor",
+          boundingBox: { x: 0.65, y: 0.55, width: 0.1, height: 0.03 },
+          description: "Hairline micro-crack, early stage, monitor for growth",
+        },
+      ];
+      const qualityScore = defectQualityScore(detections);
+      const criticalCount = detections.filter((d) => d.severity === "critical")
+        .length;
+      const riskLabel =
+        criticalCount > 0 ? "**Structural Risk: 🔴 High**" : "**Structural Risk: ⚠️ Elevated**";
       return {
         modelName: "Crack Detection v3.0",
         processingTime,
-        textResponse:
-          "I've inspected the image using the **Crack Detection** model.\n\n**Structural Risk: 🔴 High**\n\n2 cracks detected. The major crack requires immediate attention and may indicate structural fatigue.",
-        detections: [
-          {
-            id: "d1",
-            label: "Crack",
-            confidence: 0.96,
-            severity: "critical",
-            boundingBox: { x: 0.2, y: 0.3, width: 0.3, height: 0.04 },
-            description:
-              "Major crack, ~4.5cm, extends through surface layer, signs of propagation",
-          },
-          {
-            id: "d2",
-            label: "Micro-crack",
-            confidence: 0.73,
-            severity: "minor",
-            boundingBox: { x: 0.65, y: 0.55, width: 0.1, height: 0.03 },
-            description: "Hairline micro-crack, early stage, monitor for growth",
-          },
-        ],
+        detections,
+        textResponse: `I've inspected the image using the **Crack Detection** model.\n\n${riskLabel}\n\n**Quality Score: ${qualityScore}/100**\n\n${detections.length} crack(s) detected. The major crack requires immediate attention and may indicate structural fatigue.`,
       };
+    }
 
-    case "surface-anomaly":
+    case "surface-anomaly": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Discoloration",
+          confidence: 0.85,
+          severity: "minor",
+          boundingBox: { x: 0.3, y: 0.2, width: 0.1, height: 0.1 },
+          description: "Slight color variation, likely material batch difference",
+        },
+        {
+          id: "d2",
+          label: "Texture Irregularity",
+          confidence: 0.72,
+          severity: "minor",
+          boundingBox: { x: 0.55, y: 0.65, width: 0.08, height: 0.08 },
+          description: "Surface texture slightly rougher than standard",
+        },
+        {
+          id: "d3",
+          label: "Mark",
+          confidence: 0.68,
+          severity: "minor",
+          boundingBox: { x: 0.15, y: 0.7, width: 0.06, height: 0.06 },
+          description: "Faint tooling mark from manufacturing process",
+        },
+      ];
+      const qualityScore = defectQualityScore(detections);
+      const minorCount = detections.filter((d) => d.severity === "minor").length;
       return {
         modelName: "Surface Anomaly v1.0",
         processingTime,
-        textResponse:
-          "I've analyzed the surface using the **Surface Anomaly** model.\n\n**Surface Quality: Good (3 minor anomalies)**\n\nNo critical issues found. Minor anomalies detected that are within normal manufacturing variance.",
-        detections: [
-          {
-            id: "d1",
-            label: "Discoloration",
-            confidence: 0.85,
-            severity: "minor",
-            boundingBox: { x: 0.3, y: 0.2, width: 0.1, height: 0.1 },
-            description: "Slight color variation, likely material batch difference",
-          },
-          {
-            id: "d2",
-            label: "Texture Irregularity",
-            confidence: 0.72,
-            severity: "minor",
-            boundingBox: { x: 0.55, y: 0.65, width: 0.08, height: 0.08 },
-            description: "Surface texture slightly rougher than standard",
-          },
-          {
-            id: "d3",
-            label: "Mark",
-            confidence: 0.68,
-            severity: "minor",
-            boundingBox: { x: 0.15, y: 0.7, width: 0.06, height: 0.06 },
-            description: "Faint tooling mark from manufacturing process",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the surface using the **Surface Anomaly** model.\n\n**Surface Quality Score: ${qualityScore}/100** (${minorCount} minor anomalies)\n\nNo critical issues found. Minor anomalies detected that are within normal manufacturing variance.`,
       };
+    }
 
-    case "safety-hazard":
+    case "safety-hazard": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Tripping Hazard",
+          confidence: 0.91,
+          severity: "major",
+          boundingBox: { x: 0.4, y: 0.75, width: 0.2, height: 0.1 },
+          description: "Cables running across walkway, not covered or marked",
+        },
+        {
+          id: "d2",
+          label: "Blocked Exit",
+          confidence: 0.84,
+          severity: "critical",
+          boundingBox: { x: 0.8, y: 0.3, width: 0.15, height: 0.4 },
+          description: "Emergency exit partially blocked by equipment",
+        },
+        {
+          id: "d3",
+          label: "Wet Floor",
+          confidence: 0.76,
+          severity: "minor",
+          boundingBox: { x: 0.1, y: 0.6, width: 0.2, height: 0.15 },
+          description: "Wet surface near workstation, no warning sign placed",
+        },
+      ];
+      const criticalCount = detections.filter((d) => d.severity === "critical")
+        .length;
+      const majorCount = detections.filter((d) => d.severity === "major").length;
+      const riskLevel =
+        criticalCount > 0
+          ? "**Risk Level: 🔴 High**"
+          : majorCount >= 2
+            ? "**Risk Level: ⚠️ Medium**"
+            : "**Risk Level: ⚠️ Medium**";
       return {
         modelName: "Safety Hazard Detection v2.0",
         processingTime,
-        textResponse:
-          "I've analyzed the scene using the **Safety Hazard Detection** model.\n\n**Risk Level: ⚠️ Medium**\n\n3 potential hazards identified. Immediate corrective actions recommended for the tripping hazard.",
-        detections: [
-          {
-            id: "d1",
-            label: "Tripping Hazard",
-            confidence: 0.91,
-            severity: "major",
-            boundingBox: { x: 0.4, y: 0.75, width: 0.2, height: 0.1 },
-            description: "Cables running across walkway, not covered or marked",
-          },
-          {
-            id: "d2",
-            label: "Blocked Exit",
-            confidence: 0.84,
-            severity: "critical",
-            boundingBox: { x: 0.8, y: 0.3, width: 0.15, height: 0.4 },
-            description: "Emergency exit partially blocked by equipment",
-          },
-          {
-            id: "d3",
-            label: "Wet Floor",
-            confidence: 0.76,
-            severity: "minor",
-            boundingBox: { x: 0.1, y: 0.6, width: 0.2, height: 0.15 },
-            description: "Wet surface near workstation, no warning sign placed",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the scene using the **Safety Hazard Detection** model.\n\n${riskLevel}\n\n${detections.length} potential hazards identified. Immediate corrective actions recommended for the tripping hazard.`,
       };
+    }
 
-    case "vehicle-detection":
+    case "vehicle-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Truck",
+          confidence: 0.97,
+          severity: "info",
+          boundingBox: { x: 0.05, y: 0.3, width: 0.3, height: 0.25 },
+          description: "Delivery truck, parked at loading dock",
+        },
+        {
+          id: "d2",
+          label: "Truck",
+          confidence: 0.95,
+          severity: "info",
+          boundingBox: { x: 0.6, y: 0.25, width: 0.25, height: 0.2 },
+          description: "Transport truck, engine running",
+        },
+        {
+          id: "d3",
+          label: "Forklift",
+          confidence: 0.91,
+          severity: "info",
+          boundingBox: { x: 0.35, y: 0.5, width: 0.12, height: 0.15 },
+          description: "Forklift in operation near warehouse",
+        },
+        {
+          id: "d4",
+          label: "Forklift",
+          confidence: 0.88,
+          severity: "info",
+          boundingBox: { x: 0.7, y: 0.55, width: 0.1, height: 0.12 },
+          description: "Forklift parked, no operator",
+        },
+      ];
       return {
         modelName: "Vehicle Detection v1.2",
         processingTime,
-        textResponse:
-          "I've analyzed the image using the **Vehicle Detection** model.\n\n**Vehicles Found: 4**\n\n2 trucks and 2 forklifts detected in the facility area.",
-        detections: [
-          {
-            id: "d1",
-            label: "Truck",
-            confidence: 0.97,
-            severity: "info",
-            boundingBox: { x: 0.05, y: 0.3, width: 0.3, height: 0.25 },
-            description: "Delivery truck, parked at loading dock",
-          },
-          {
-            id: "d2",
-            label: "Truck",
-            confidence: 0.95,
-            severity: "info",
-            boundingBox: { x: 0.6, y: 0.25, width: 0.25, height: 0.2 },
-            description: "Transport truck, engine running",
-          },
-          {
-            id: "d3",
-            label: "Forklift",
-            confidence: 0.91,
-            severity: "info",
-            boundingBox: { x: 0.35, y: 0.5, width: 0.12, height: 0.15 },
-            description: "Forklift in operation near warehouse",
-          },
-          {
-            id: "d4",
-            label: "Forklift",
-            confidence: 0.88,
-            severity: "info",
-            boundingBox: { x: 0.7, y: 0.55, width: 0.1, height: 0.12 },
-            description: "Forklift parked, no operator",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the image using the **Vehicle Detection** model.\n\n**Vehicles Found: ${detections.length}**\n\n2 trucks and 2 forklifts detected in the facility area.`,
       };
+    }
 
-    case "object-counting":
+    case "object-counting": {
+      const detections: DetectionResult[] = Array.from({ length: 12 }, (_, i) => {
+        const seed = (i + 1) * 17;
+        const rf = (n: number) => ((seed * n) % 97) / 100;
+        return {
+          id: `d${i + 1}`,
+          label: `Object ${i + 1}`,
+          confidence: 0.7 + rf(3) * 0.28,
+          severity: "info" as const,
+          boundingBox: {
+            x: rf(1) * 0.7,
+            y: rf(2) * 0.7,
+            width: 0.05 + rf(4) * 0.1,
+            height: 0.05 + rf(5) * 0.1,
+          },
+          description: `Detected object at position ${i + 1}`,
+        };
+      });
       return {
         modelName: "Object Counting v1.0",
         processingTime,
-        textResponse:
-          "I've analyzed the image using the **Object Counting** model.\n\n**Total Objects: 12**\n\nDetected and counted 12 distinct objects in the scene. Each is marked with a bounding box.",
-        detections: Array.from({ length: 12 }, (_, i) => ({
-          id: `d${i + 1}`,
-          label: `Object ${i + 1}`,
-          confidence: 0.7 + Math.random() * 0.28,
-          severity: "info" as const,
-          boundingBox: {
-            x: Math.random() * 0.7,
-            y: Math.random() * 0.7,
-            width: 0.05 + Math.random() * 0.1,
-            height: 0.05 + Math.random() * 0.1,
-          },
-          description: `Detected object at position ${i + 1}`,
-        })),
+        detections,
+        textResponse: `I've analyzed the image using the **Object Counting** model.\n\n**Total Objects: ${detections.length}**\n\nDetected and counted ${detections.length} distinct objects in the scene. Each is marked with a bounding box.`,
       };
+    }
 
-    case "face-detection":
+    case "face-detection": {
+      const detections: DetectionResult[] = [
+        {
+          id: "d1",
+          label: "Face",
+          confidence: 0.95,
+          severity: "info",
+          boundingBox: { x: 0.1, y: 0.2, width: 0.12, height: 0.15 },
+          description: "Face detected in foreground",
+        },
+        {
+          id: "d2",
+          label: "Face",
+          confidence: 0.92,
+          severity: "info",
+          boundingBox: { x: 0.35, y: 0.25, width: 0.1, height: 0.12 },
+          description: "Face detected center",
+        },
+        {
+          id: "d3",
+          label: "Face",
+          confidence: 0.88,
+          severity: "info",
+          boundingBox: { x: 0.6, y: 0.3, width: 0.11, height: 0.14 },
+          description: "Face detected right side",
+        },
+        {
+          id: "d4",
+          label: "Face",
+          confidence: 0.82,
+          severity: "info",
+          boundingBox: { x: 0.2, y: 0.55, width: 0.09, height: 0.11 },
+          description: "Face detected mid-ground",
+        },
+        {
+          id: "d5",
+          label: "Face",
+          confidence: 0.75,
+          severity: "info",
+          boundingBox: { x: 0.7, y: 0.6, width: 0.08, height: 0.1 },
+          description: "Face detected background",
+        },
+      ];
       return {
         modelName: "Face Detection v1.0",
         processingTime,
-        textResponse:
-          "I've analyzed the image using the **Face Detection** model.\n\n**Faces Found: 5**\n\n5 faces detected in the scene.",
-        detections: [
-          {
-            id: "d1",
-            label: "Face",
-            confidence: 0.95,
-            severity: "info",
-            boundingBox: { x: 0.1, y: 0.2, width: 0.12, height: 0.15 },
-            description: "Face detected in foreground",
-          },
-          {
-            id: "d2",
-            label: "Face",
-            confidence: 0.92,
-            severity: "info",
-            boundingBox: { x: 0.35, y: 0.25, width: 0.1, height: 0.12 },
-            description: "Face detected center",
-          },
-          {
-            id: "d3",
-            label: "Face",
-            confidence: 0.88,
-            severity: "info",
-            boundingBox: { x: 0.6, y: 0.3, width: 0.11, height: 0.14 },
-            description: "Face detected right side",
-          },
-          {
-            id: "d4",
-            label: "Face",
-            confidence: 0.82,
-            severity: "info",
-            boundingBox: { x: 0.2, y: 0.55, width: 0.09, height: 0.11 },
-            description: "Face detected mid-ground",
-          },
-          {
-            id: "d5",
-            label: "Face",
-            confidence: 0.75,
-            severity: "info",
-            boundingBox: { x: 0.7, y: 0.6, width: 0.08, height: 0.1 },
-            description: "Face detected background",
-          },
-        ],
+        detections,
+        textResponse: `I've analyzed the image using the **Face Detection** model.\n\n**Faces Found: ${detections.length}**\n\n${detections.length} face(s) detected in the scene.`,
       };
+    }
 
     default:
       return null;

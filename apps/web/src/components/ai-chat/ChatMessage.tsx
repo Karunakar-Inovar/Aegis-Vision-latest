@@ -10,10 +10,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { FormattedContent } from "./FormattedContent";
-import { MessageAttachments } from "./MessageAttachments";
 import { AnnotatedImageOverlay } from "./AnnotatedImageOverlay";
 import { AnnotatedImageResult } from "./AnnotatedImageResult";
-import { DetectionCharts } from "./DetectionCharts";
 import type { ChatMessage as ChatMessageType } from "@/services/ai-chat/types";
 
 interface ChatMessageProps {
@@ -51,15 +49,35 @@ export function ChatMessage({
       <div className="flex justify-end gap-3">
         <div className="max-w-[80%]">
           {message.attachments && message.attachments.length > 0 && (
-            <div className="mb-2 flex justify-end">
-              <MessageAttachments attachments={message.attachments} />
+            <div className="mb-2 flex flex-wrap justify-end gap-2">
+              {message.attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="relative overflow-hidden rounded-xl border border-gray-200"
+                >
+                  {att.type === "video" ? (
+                    <video
+                      src={att.localUrl}
+                      controls
+                      className="max-h-[200px] max-w-[280px] rounded-xl"
+                    />
+                  ) : (
+                    <img
+                      src={att.localUrl}
+                      alt={att.fileName}
+                      className="max-h-[200px] max-w-[280px] rounded-xl object-cover"
+                    />
+                  )}
+                  <p className="px-2 py-1 text-xs text-gray-400">{att.fileName}</p>
+                </div>
+              ))}
             </div>
           )}
-          {message.content && (
+          {message.content ? (
             <div className="rounded-2xl rounded-br-md bg-gray-100 px-4 py-3 text-sm text-gray-800">
               {message.content}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     );
@@ -71,36 +89,17 @@ export function ChatMessage({
       <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100">
         <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
       </div>
-      <div className="max-w-[85%] flex-1">
+      <div className="max-w-[90%] flex-1">
         <div className="text-sm leading-relaxed text-gray-800">
           <FormattedContent content={message.content} />
         </div>
-        {message.metadata?.type === "detection-result" &&
-          message.metadata?.detections?.length > 0 && (
-            <DetectionCharts
-              detections={
-                (message.metadata.detections as Array<{
-                  id: string;
-                  label: string;
-                  confidence: number;
-                  severity: "critical" | "major" | "minor" | "info";
-                  boundingBox: {
-                    x: number;
-                    y: number;
-                    width: number;
-                    height: number;
-                  };
-                  description?: string;
-                }>) ?? []
-              }
-              modelName={message.metadata.modelName as string}
-              detectionModel={(message.metadata.detectionModel as string) ?? ""}
-            />
-          )}
         {message.metadata?.type === "detection-result" && (
           <AnnotatedImageResult
             imageUrl={
               (message.metadata.imageUrl as string) || previousUserImageUrl || ""
+            }
+            capturedFrameUrl={
+              message.metadata.capturedFrameUrl as string | undefined
             }
             detections={
               (message.metadata.detections as Array<{
@@ -114,6 +113,12 @@ export function ChatMessage({
             }
             modelName={(message.metadata.modelName as string) ?? "Detection"}
             processingTime={(message.metadata.processingTime as number) ?? 0}
+            detectionModel={(message.metadata.detectionModel as string) ?? ""}
+            metadata={
+              typeof message.metadata?.mediaType === "string"
+                ? { mediaType: message.metadata.mediaType }
+                : undefined
+            }
           />
         )}
         {message.metadata?.defects &&

@@ -32,9 +32,34 @@ interface DetectionChartsProps {
   detections: Detection[];
   modelName?: string;
   detectionModel: string;
+  /** Omit outer margin when nested (e.g. analytics accordion). */
+  embedded?: boolean;
 }
 
-function getChartConfig(
+export function getSeverityChartColor(severity: string): string {
+  switch (severity) {
+    case "critical":
+      return "#EF4444";
+    case "major":
+      return "#F97316";
+    case "minor":
+      return "#EAB308";
+    case "info":
+      return "#22C55E";
+    default:
+      return "#6B7280";
+  }
+}
+
+export function getWorstSeverity(detections: Detection[]): string {
+  const order = ["critical", "major", "minor", "info"] as const;
+  for (const severity of order) {
+    if (detections.some((d) => d.severity === severity)) return severity;
+  }
+  return "info";
+}
+
+export function getDetectionChartConfig(
   detectionModel: string,
   detections: Detection[]
 ): ChartConfig[] {
@@ -78,11 +103,15 @@ function getChartConfig(
     configs.push({
       type: "bar",
       title: "Detection Breakdown",
-      data: uniqueTypes.map((type) => ({
-        name: type,
-        count: typeCounts[type],
-        color: "#4F46E5",
-      })),
+      data: uniqueTypes.map((type) => {
+        const detectionsOfType = detections.filter((d) => d.label === type);
+        const worstSeverity = getWorstSeverity(detectionsOfType);
+        return {
+          name: type,
+          count: typeCounts[type],
+          color: getSeverityChartColor(worstSeverity),
+        };
+      }),
     });
   }
 
@@ -153,7 +182,7 @@ function BarChartComponent({
         />
         <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={40}>
           {data.map((entry, i) => (
-            <Cell key={i} fill={entry.color || "#4F46E5"} />
+            <Cell key={i} fill={entry.color} />
           ))}
         </Bar>
       </BarChart>
@@ -243,13 +272,20 @@ function ChartCard({ chart }: { chart: ChartConfig }) {
 export function DetectionCharts({
   detections,
   detectionModel,
+  embedded = false,
 }: DetectionChartsProps) {
-  const chartConfig = getChartConfig(detectionModel, detections);
+  const chartConfig = getDetectionChartConfig(detectionModel, detections);
 
   if (!chartConfig || chartConfig.length === 0) return null;
 
   return (
-    <div className="my-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div
+      className={
+        embedded
+          ? "grid grid-cols-1 gap-3 md:grid-cols-2"
+          : "my-3 grid grid-cols-1 gap-3 md:grid-cols-2"
+      }
+    >
       {chartConfig.map((chart, i) => (
         <ChartCard key={i} chart={chart} />
       ))}
